@@ -1,0 +1,7 @@
+[package]
+name = "cli_dictionary_rust"
+version = "0.1.0"
+authors = ["Felipe Freitas <eu.felipefreitassilva@gmail.com>"]
+edition = "2021"
+
+[dependencies]
