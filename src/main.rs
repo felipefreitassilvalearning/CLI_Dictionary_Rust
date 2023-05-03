@@ -11,25 +11,34 @@ fn main() {
     // println!("The key is {}", key);
     // println!("The value is {}", value);
     println!("{{ \"{}\": \"{}\" }}", key, value);
-    // format! macro works exactly like print[ln]!
-    let contents = format!("{}\t{}\n", key, value);
-    // let write_result =
-    std::fs::write("kv.db", contents).unwrap();
-    // To handle any errors:
-    // match write_result {
-    //     Ok(()) => {
+    // // format! macro works exactly like print[ln]!
+    // let contents = format!("{}\t{}\n", key, value);
+    // // let write_result =
+    // std::fs::write("kv.db", contents).unwrap();
+    // // To handle any errors:
+    // // match write_result {
+    // //     Ok(()) => {
+    // //      ...
+    // //     }
+    // //     Err(e) => {
+    // //      ...
+    // //     }
+    // // }
 
-    //     }
-    //     Err(e) => {
-
-    //     }
-    // }
-
-    let database = Database::new().expect("Creating db failed");
+    let mut database = Database::new().expect("Creating db failed");
+    database.insert(key.to_uppercase(), value.clone());
+    database.insert(key, value);
+    // Will not work since value was given to previous insert
+    // println!("The value was {}", value);
+    match database.flush() {
+        Ok(()) => println!("YAY!"),
+        Err(err) => println!("OH NOS! Error! {}", err),
+    }
 }
 
 struct Database {
     map: HashMap<String, String>,
+    flush: bool,
 }
 
 impl Database {
@@ -55,6 +64,46 @@ impl Database {
         }
         // parse the string
         // populate the map
-        Ok(Database { map })
+        Ok(Database { map, flush: false })
+    }
+
+    fn insert(&mut self, key: String, value: String) {
+        self.map.insert(key, value);
+    }
+
+    fn flush(mut self) -> std::io::Result<()> {
+        let mut contents = String::new();
+        for (key, value) in &self.map {
+            // let kvpair = format!("{}\t{}\n", key, value);
+            // contents.push_str(&kvpair);
+            // Or
+            // push_str = "Word"
+            contents.push_str(key);
+            // push = 'char'
+            contents.push('\t');
+            contents.push_str(value);
+            contents.push('\n');
+        }
+        // // Add to remove errors and warnings while developing
+        // todo!("Finish this method")
+        self.flush = true;
+        std::fs::write("kv.db", contents)
+    }
+}
+
+impl Drop for Database {
+    // Called "on desctruct", before freeing all memory
+    fn drop(&mut self) {
+        if (self.flush) {
+            let mut contents = String::new();
+            for (key, value) in &self.map {
+                contents.push_str(key);
+                contents.push('\t');
+                contents.push_str(value);
+                contents.push('\n');
+            }
+            // _[var] = ignore return value
+            let _ = std::fs::write("kv.db", contents);
+        }
     }
 }
